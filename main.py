@@ -10,9 +10,17 @@ from html import unescape
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, ContextTypes
 import logging
+from dotenv import load_dotenv
 
 # ================== SOZLAMALAR ==================
-# BOT_TOKEN = "5733325519:AAFv2ppID87NXf1iz-K_iPeI4_sPcYqRPNs"
+
+load_dotenv()  # .env va Railway env’larini o‘qiydi
+
+BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
+
+if not BOT_TOKEN:
+    raise RuntimeError("❌ TELEGRAM_TOKEN topilmadi! Railway Env Variables ni tekshiring")
+
 CHANNELS = ["@oak_himoya_elonlari"]
 NEWS_LIST_URL = "https://oak.uz/page/8"   # yoki /pages/27300 bo'lsa moslang
 LAST_FILE = "last_news.json"
