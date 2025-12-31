@@ -5,6 +5,7 @@
 import os
 import json
 import logging
+import asyncio
 from html import unescape
 
 import requests
@@ -19,15 +20,13 @@ load_dotenv()
 # ======= SOZLAMALAR =======
 BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not BOT_TOKEN:
-    raise RuntimeError("❌ TELEGRAM_TOKEN topilmadi! .env fayl yoki Railway env'larni tekshiring.")
+    raise RuntimeError("❌ TELEGRAM_TOKEN topilmadi! .env faylini tekshiring (TELEGRAM_TOKEN=...).")
 
-# ADMIN_CHAT_ID — agar .env da bo'lsa, int ga aylantiring, aks holda None
 ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
 if ADMIN_CHAT_ID:
     try:
         ADMIN_CHAT_ID = int(ADMIN_CHAT_ID)
     except ValueError:
-        # agar noto'g'ri format — ogohlantirish, lekin davom etish uchun None qilamiz
         logging.warning("ADMIN_CHAT_ID butun son emas, e'tiborga olinmaydi.")
         ADMIN_CHAT_ID = None
 
@@ -91,7 +90,7 @@ def clean_html_text(tag):
     txt = tag.get_text(separator='\n', strip=True)
     return unescape(txt)
 
-# ======= Fetch news =======
+# ======= Fetch news (sync) =======
 def fetch_latest_news_raw():
     sess = requests.Session()
     try:
@@ -253,7 +252,8 @@ async def setlang_kiril(update, context):
 
 async def last_cmd(update, context):
     bot = context.bot
-    raw = fetch_latest_news_raw()
+    # Sync fetch bajarilishini event-loopni bloklamaslik uchun threadda ishga tushiramiz
+    raw = await asyncio.to_thread(fetch_latest_news_raw)
     to_latin = admin_pref_is_latin()
     count = 0
     for item in raw[:10]:
@@ -274,7 +274,7 @@ async def last_cmd(update, context):
 async def periodic_job(context: ContextTypes.DEFAULT_TYPE):
     bot = context.bot
     try:
-        raw = fetch_latest_news_raw()
+        raw = await asyncio.to_thread(fetch_latest_news_raw)
         if not raw:
             if ADMIN_CHAT_ID:
                 await bot.send_message(ADMIN_CHAT_ID, "BILDIRGI: Yangilik topilmadi (fetch bo'sh).")
@@ -294,7 +294,7 @@ async def periodic_job(context: ContextTypes.DEFAULT_TYPE):
                 pass
 
 # ======= MAIN =======
-def main():
+async def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
@@ -306,7 +306,11 @@ def main():
     app.job_queue.run_repeating(periodic_job, interval=600, first=10)
 
     logger.info("Bot ishga tushmoqda...")
-    app.run_polling()
+    # run_polling() coroutine sifatida await qilinadi — shu bilan event-loop to'g'ri ishlaydi
+    await app.run_polling()
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("Bot to'xtatildi.")
