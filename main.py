@@ -309,8 +309,30 @@ async def main():
     # run_polling() coroutine sifatida await qilinadi — shu bilan event-loop to'g'ri ishlaydi
     await app.run_polling()
 
+
 if __name__ == "__main__":
+    # TOZA SYNC CHAQIRUV — event loop allaqachon mavjud bo'lsa xato bermaydi
+    import logging
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
     try:
-        asyncio.run(main())
+        from telegram.ext import Application
+
+        app = Application.builder().token(BOT_TOKEN).build()
+
+        # Handlers
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(CommandHandler("setlang_lotin", setlang_latin))
+        app.add_handler(CommandHandler("setlang_krill", setlang_kiril))
+        app.add_handler(CommandHandler("last", last_cmd))
+
+        # Job
+        app.job_queue.run_repeating(periodic_job, interval=600, first=10)
+
+        logger.info("Bot ishga tushmoqda...")
+        # run_polling() sync tarzda chaqiriladi
+        app.run_polling()
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot to'xtatildi.")
