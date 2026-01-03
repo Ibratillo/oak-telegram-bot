@@ -302,8 +302,8 @@ async def main():
     app.add_handler(CommandHandler("setlang_krill", setlang_kiril))
     app.add_handler(CommandHandler("last", last_cmd))
 
-    # har 10 daqiqada (600s)
-    app.job_queue.run_repeating(periodic_job, interval=600, first=10)
+    # har 10 daqiqada (60s)
+    app.job_queue.run_repeating(periodic_job, interval=60, first=10)
 
     logger.info("Bot ishga tushmoqda...")
     # run_polling() coroutine sifatida await qilinadi — shu bilan event-loop to'g'ri ishlaydi
@@ -329,7 +329,7 @@ if __name__ == "__main__":
         app.add_handler(CommandHandler("last", last_cmd))
 
         # Job
-        app.job_queue.run_repeating(periodic_job, interval=600, first=10)
+        app.job_queue.run_repeating(periodic_job, interval=60, first=10)
 
         logger.info("Bot ishga tushmoqda...")
         # run_polling() sync tarzda chaqiriladi
